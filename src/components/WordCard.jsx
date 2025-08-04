@@ -56,10 +56,10 @@ export default function WordCard({ wordData, isList = false, onRemove = null, pl
       {/* Pronunciation Cards */}
       {wordData.phonetics?.map((phonetic, index) => (
         phonetic.audio && (
-          <motion.div
-            key={`audio-${index}`}
-            variants={item}
-            className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
+            <motion.div
+              key={`audio-${index}`}
+              variants={item}
+              className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <div className="bg-gradient-to-r from-primary/5 to-tertiary/5 p-4 sm:p-6">
               <motion.button

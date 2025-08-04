@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './components/Home';
 import DictionaryApp from './features/dictionary/DictionaryApp';
+
 import './App.css';
 
 function App() {

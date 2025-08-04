@@ -1,0 +1,8 @@
+POST https://siriusweb.app.n8n.cloud/webhook-test/remember
+Content-Type: application/json
+
+{
+"session_id": "mi-nueva-sesion-de-chat-123",
+    "word": "Hoy es domingo de prueba",
+    "message": "domingo 03/08"
+}

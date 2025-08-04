@@ -1,179 +1,246 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { toast, Toaster } from 'react-hot-toast';
+import { motion } from 'framer-motion';
 import { useDictionary } from '../../hooks/useDictionary';
 import { useStorage } from '../../hooks/useStorage';
-import { motion } from 'framer-motion';
 import MainLayout from '../../layouts/MainLayout';
 import Navigation from '../../components/Navigation';
 import SearchBar from '../../components/SearchBar';
 import WordCard from '../../components/WordCard';
 import EmptyState from '../../components/EmptyState';
 import ActionButtons from '../../components/ActionButtons';
+// === PASO 1: IMPORTAR EL COMPONENTE ChatBot ===
+import ChatBot from '../../components/ChatBot';
 
 function DictionaryApp() {
-  const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState('search');
-  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  
-  const {
-    word,
-    setWord,
-    wordData,
-    loading,
-    playingAudio,
-    handleSearch,
-    handleAudioPlay,
-  } = useDictionary();
+  const navigate = useNavigate();
+  const [currentView, setCurrentView] = useState('search');
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  
+  const {
+    word,
+    setWord,
+    wordData, // <-- wordData contiene la información de la palabra encontrada
+    loading,
+    playingAudio,
+    error,
+    handleSearch,
+    handleAudioPlay,
+    resetDictionary
+  } = useDictionary();
 
-  const {
-    items: favorites,
-    addItem: addToFavorites,
-    removeItem: removeFromFavorites,
-  } = useStorage('favorites');
+  const {
+    items: favorites,
+    addItem: addToFavorites,
+    removeItem: removeFromFavorites,
+  } = useStorage('favorites');
 
-  const {
-    items: bookmarks,
-    addItem: addToBookmarks,
-    removeItem: removeFromBookmarks,
-  } = useStorage('bookmarks');
+  const {
+    items: bookmarks,
+    addItem: addToBookmarks,
+    removeItem: removeFromBookmarks,
+  } = useStorage('bookmarks');
 
-  const handleSearchWithToast = async () => {
-    const result = await handleSearch();
-    if (result.success) {
-      toast.success('Word found!');
-    } else {
-      toast.error(result.error);
-    }
-  };
+  // Resetear la búsqueda al cambiar de vista
+  useEffect(() => {
+    if (currentView !== 'search') {
+      resetDictionary();
+    }
+  }, [currentView, resetDictionary]);
 
-  const handleAddToFavorites = () => {
-    if (wordData && addToFavorites(wordData)) {
-      toast.success('Added to favorites!');
-    }
-  };
+  const handleSearchWithToast = async () => {
+    const result = await handleSearch();
+    
+    if (result.success) {
+      toast.success('Word found!');
+    } else {
+      // No mostrar toast para búsqueda vacía (ya se muestra en la UI)
+      if (result.error !== 'Please enter a word!') {
+        toast.error(result.error || 'Error searching word');
+      }
+    }
+  };
 
-  const handleAddToBookmarks = () => {
-    if (wordData && addToBookmarks(wordData)) {
-      toast.success('Bookmarked!');
-    }
-  };
+  const handleAddToFavorites = () => {
+    if (!wordData) {
+      toast.error('No word to add');
+      return;
+    }
+    
+    try {
+      const success = addToFavorites(wordData);
+      if (success) {
+        toast.success('Added to favorites!');
+      } else {
+        toast.error('Already in favorites');
+      }
+    } catch (err) {
+      console.error('Error adding to favorites:', err);
+      toast.error('Failed to add to favorites');
+    }
+  };
 
-  return (
-    <MainLayout isInfoModalOpen={isInfoModalOpen} setIsInfoModalOpen={setIsInfoModalOpen}>
-      <Toaster position="top-center" />
-      
-      <h1 
-        onClick={() => navigate('/')}
-        className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-8 sm:mb-12 bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity"
-      >
-        RememberMe
-      </h1>
+  const handleAddToBookmarks = () => {
+    if (!wordData) {
+      toast.error('No word to bookmark');
+      return;
+    }
+    
+    try {
+      const success = addToBookmarks(wordData);
+      if (success) {
+        toast.success('Bookmarked!');
+      } else {
+        toast.error('Already bookmarked');
+      }
+    } catch (err) {
+      console.error('Error adding to bookmarks:', err);
+      toast.error('Failed to bookmark');
+    }
+  };
 
-      <Navigation
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        favoritesCount={favorites.length}
-        bookmarksCount={bookmarks.length}
-      />
+  return (
+    <MainLayout isInfoModalOpen={isInfoModalOpen} setIsInfoModalOpen={setIsInfoModalOpen}>
+      <Toaster 
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            borderRadius: '12px',
+            padding: '16px',
+          },
+          error: {
+            duration: 4000,
+          }
+        }}
+      />
+      
+      <motion.h1 
+        onClick={() => navigate('/')}
+        className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-8 sm:mb-12 bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        RememberMe
+      </motion.h1>
 
-      <AnimatePresence mode="wait">
-        {currentView === 'search' && (
-          <motion.div
-            key="search"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-          >
-            <SearchBar
-              word={word}
-              setWord={setWord}
-              onSearch={handleSearchWithToast}
-              loading={loading}
-            />
+      <Navigation
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        favoritesCount={favorites.length}
+        bookmarksCount={bookmarks.length}
+      />
 
-            {wordData && (
-              <ActionButtons
-                onAddToFavorites={handleAddToFavorites}
-                onAddToBookmarks={handleAddToBookmarks}
-              />
-            )}
+      <AnimatePresence mode="wait">
+        {currentView === 'search' && (
+          <motion.div
+            key="search"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="space-y-6"
+          >
+            <SearchBar
+              word={word}
+              setWord={setWord}
+              onSearch={handleSearchWithToast}
+              loading={loading}
+              error={error}
+            />
 
-            {wordData && (
-              <WordCard
-                wordData={wordData}
-                playingAudio={playingAudio}
-                onAudioPlay={handleAudioPlay}
-              />
-            )}
-          </motion.div>
-        )}
+            {wordData && (
+              <>
+                <ActionButtons
+                  onAddToFavorites={handleAddToFavorites}
+                  onAddToBookmarks={handleAddToBookmarks}
+                />
+                
+                <WordCard
+                  wordData={wordData}
+                  playingAudio={playingAudio}
+                  onAudioPlay={(audioUrl) => handleAudioPlay(audioUrl, wordData.word)}
+                />
 
-        {currentView === 'favorites' && (
-          <motion.div
-            key="favorites"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="space-y-4 sm:space-y-6"
-          >
-            {favorites.length === 0 ? (
-              <EmptyState type="favorites" />
-            ) : (
-              favorites.map((word, index) => (
-                <motion.div
-                  key={word.word}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <WordCard
-                    wordData={word}
-                    isList={true}
-                    onRemove={removeFromFavorites}
-                    playingAudio={playingAudio}
-                    onAudioPlay={handleAudioPlay}
-                  />
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-        )}
+                {/* === PASO 2: AGREGAR EL COMPONENTE ChatBot AQUÍ === */}
+                {/* Solo se muestra si wordData existe (es decir, si hay una palabra encontrada) */}
+                {/* Le pasamos wordData.word como prop */}
+                <div className="chatbot-section mt-10">
+                  <h3 className="text-xl font-semibold mb-4">Pregúntale al experto:</h3>
+                  <ChatBot currentWord={wordData.word} />
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
 
-        {currentView === 'bookmarks' && (
-          <motion.div
-            key="bookmarks"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="space-y-4 sm:space-y-6"
-          >
-            {bookmarks.length === 0 ? (
-              <EmptyState type="bookmarks" />
-            ) : (
-              bookmarks.map((word, index) => (
-                <motion.div
-                  key={word.word}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <WordCard
-                    wordData={word}
-                    isList={true}
-                    onRemove={removeFromBookmarks}
-                    playingAudio={playingAudio}
-                    onAudioPlay={handleAudioPlay}
-                  />
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </MainLayout>
-  );
+        {currentView === 'favorites' && (
+          <motion.div
+            key="favorites"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="space-y-6"
+          >
+            {favorites.length === 0 ? (
+              <EmptyState type="favorites" />
+            ) : (
+              favorites.map((word, index) => (
+                <motion.div
+                  key={`${word.word}-${index}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <WordCard
+                    wordData={word}
+                    isList={true}
+                    onRemove={() => removeFromFavorites(word)}
+                    playingAudio={playingAudio}
+                    onAudioPlay={(audioUrl) => handleAudioPlay(audioUrl, word.word)}
+                  />
+                </motion.div>
+              ))
+            )}
+          </motion.div>
+        )}
+
+        {currentView === 'bookmarks' && (
+          <motion.div
+            key="bookmarks"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="space-y-6"
+          >
+            {bookmarks.length === 0 ? (
+              <EmptyState type="bookmarks" />
+            ) : (
+              bookmarks.map((word, index) => (
+                <motion.div
+                  key={`${word.word}-${index}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <WordCard
+                    wordData={word}
+                    isList={true}
+                    onRemove={() => removeFromBookmarks(word)}
+                    playingAudio={playingAudio}
+                    onAudioPlay={(audioUrl) => handleAudioPlay(audioUrl, word.word)}
+                  />
+                </motion.div>
+              ))
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </MainLayout>
+  );
 }
 
-export default DictionaryApp; 
+export default DictionaryApp;
