@@ -165,13 +165,7 @@ function DictionaryApp() {
                   onAudioPlay={(audioUrl) => handleAudioPlay(audioUrl, wordData.word)}
                 />
 
-                {/* === PASO 2: AGREGAR EL COMPONENTE ChatBot AQUÍ === */}
-                {/* Solo se muestra si wordData existe (es decir, si hay una palabra encontrada) */}
-                {/* Le pasamos wordData.word como prop */}
-                <div className="chatbot-section mt-10">
-                  <h3 className="text-xl font-semibold mb-4">Pregúntale al experto:</h3>
-                  <ChatBot currentWord={wordData.word} />
-                </div>
+                {/* ChatBot flotante ahora es global, se elimina de aquí */}
               </>
             )}
           </motion.div>
@@ -239,7 +233,9 @@ function DictionaryApp() {
           </motion.div>
         )}
       </AnimatePresence>
-    </MainLayout>
+      {/* ChatBot flotante, solo visible si hay palabra seleccionada */}
+      <ChatBot currentWord={wordData?.word} />
+    </MainLayout>
   );
 }
 
